@@ -8,6 +8,7 @@
 A Python-based Terraria network client that connects directly to a Terraria server, performs the initial handshake, receives world data through Terraria packets, decodes compressed tile sections, stores the world in disk-backed memory-mapped files, and renders the collected world data into a PNG map.
 
 > **Status:** Experimental / Research Project
+
 > **Target:** Terraria 1.4.5.x protocol
 
 ---
