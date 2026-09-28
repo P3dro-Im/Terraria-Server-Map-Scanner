@@ -11,11 +11,11 @@ from PIL import Image
 # CONFIG
 # ============================================================
 
-HOST = "IP or DOMAIN"
+HOST = "IP or Domain"
 PORT = 7777
 
-VERSION = "Terraria319"
-PLAYER_NAME = "Bot"
+VERSION = "Terraria326"
+PLAYER_NAME = "bBot"
 
 WORLD_DIR = Path("terraria_world")
 
@@ -27,6 +27,7 @@ META_FILE = WORLD_DIR / "metadata.bin"
 FRAMES_FILE = WORLD_DIR / "frames.bin"
 
 PNG_FILE = Path("terraria_map.png")
+LEGEND_FILE = Path("terraria_map_legend.txt")
 
 SECTION_WIDTH = 200
 SECTION_HEIGHT = 150
@@ -210,97 +211,29 @@ async def send_player_info(
 
     payload = bytearray()
 
-    # Player ID
     payload.append(player_id)
-
-    # Skin variant
     payload.append(0)
-
-    # Voice variant
     payload.append(1)
-
-    # Voice pitch
-    payload.extend(
-        struct.pack(
-            "<f",
-            0.0,
-        )
-    )
-
-    # Hair
+    payload.extend(struct.pack("<f", 0.0))
+    payload.append(0)
+    payload.extend(write_string(PLAYER_NAME))
+    payload.append(0)
+    payload.extend(struct.pack("<H", 0))
     payload.append(0)
 
-    # Name
-    payload.extend(
-        write_string(
-            PLAYER_NAME
-        )
-    )
+    payload.extend((120, 80, 60))
+    payload.extend((255, 200, 170))
+    payload.extend((0, 0, 0))
+    payload.extend((100, 100, 100))
+    payload.extend((150, 150, 150))
+    payload.extend((50, 50, 50))
+    payload.extend((40, 40, 40))
 
-    # Hair dye
+    payload.append(0)
+    payload.append(0)
     payload.append(0)
 
-    # Accessory visibility
-    payload.extend(
-        struct.pack(
-            "<H",
-            0,
-        )
-    )
-
-    # Hide misc
-    payload.append(0)
-
-    # Hair
-    payload.extend(
-        (120, 80, 60)
-    )
-
-    # Skin
-    payload.extend(
-        (255, 200, 170)
-    )
-
-    # Eyes
-    payload.extend(
-        (0, 0, 0)
-    )
-
-    # Shirt
-    payload.extend(
-        (100, 100, 100)
-    )
-
-    # Undershirt
-    payload.extend(
-        (150, 150, 150)
-    )
-
-    # Pants
-    payload.extend(
-        (50, 50, 50)
-    )
-
-    # Shoes
-    payload.extend(
-        (40, 40, 40)
-    )
-
-    # Difficulty
-    payload.append(0)
-
-    # Additional flags
-    payload.append(0)
-
-    # Additional flags
-    payload.append(0)
-
-    await send_packet(
-        writer,
-        4,
-        bytes(payload),
-    )
-
+    await send_packet(writer, 4, bytes(payload))
     print("[>] PlayerInfo sent")
 
 
@@ -314,170 +247,65 @@ async def send_inventory(
 
         payload = bytearray()
 
-        payload.append(
-            player_id
-        )
-
-        payload.extend(
-            struct.pack(
-                "<h",
-                slot,
-            )
-        )
-
-        payload.extend(
-            struct.pack(
-                "<h",
-                0,
-            )
-        )
-
+        payload.append(player_id)
+        payload.extend(struct.pack("<h", slot))
+        payload.extend(struct.pack("<h", 0))
+        payload.append(0)
+        payload.extend(struct.pack("<h", 0))
         payload.append(0)
 
-        payload.extend(
-            struct.pack(
-                "<h",
-                0,
-            )
-        )
-
-        payload.append(0)
-
-        await send_packet(
-            writer,
-            5,
-            bytes(payload),
-        )
+        await send_packet(writer, 5, bytes(payload))
 
     print("[>] Inventory sent")
 
 
-async def request_world(
-    writer,
-):
+async def request_world(writer):
     """Request WorldInfo."""
 
-    await send_packet(
-        writer,
-        6,
-    )
-
+    await send_packet(writer, 6)
     print("[>] WorldInfo requested")
 
 
-async def request_essential_tiles(
-    writer,
-    x,
-    y,
-):
-    """
-    Request initial world section around
-    the actual spawn position.
-    """
+async def request_essential_tiles(writer, x, y):
+    """Request initial world section around spawn."""
 
     await send_packet(
         writer,
         8,
-        struct.pack(
-            "<ii",
-            int(x),
-            int(y),
-        ),
+        struct.pack("<ii", int(x), int(y)),
     )
 
-    print(
-        "[>] Initial tile request sent"
-    )
+    print("[>] Initial tile request sent")
 
 
-async def send_spawn_player(
-    writer,
-    player_id,
-    x,
-    y,
-):
+async def send_spawn_player(writer, player_id, x, y):
     """Send Packet 12."""
 
     payload = bytearray()
 
     payload.append(player_id)
-
-    payload.extend(
-        struct.pack(
-            "<h",
-            int(x),
-        )
-    )
-
-    payload.extend(
-        struct.pack(
-            "<h",
-            int(y),
-        )
-    )
-
-    # PVE deaths
-    payload.extend(
-        struct.pack(
-            "<h",
-            0,
-        )
-    )
-
-    # PVP deaths
-    payload.extend(
-        struct.pack(
-            "<h",
-            0,
-        )
-    )
-
-    # Respawn time
-    payload.extend(
-        struct.pack(
-            "<i",
-            0,
-        )
-    )
-
-    # SpawningIntoWorld
+    payload.extend(struct.pack("<h", int(x)))
+    payload.extend(struct.pack("<h", int(y)))
+    payload.extend(struct.pack("<h", 0))
+    payload.extend(struct.pack("<h", 0))
+    payload.extend(struct.pack("<i", 0))
     payload.append(1)
 
-    await send_packet(
-        writer,
-        12,
-        bytes(payload),
-    )
+    await send_packet(writer, 12, bytes(payload))
 
 
-async def send_update_player(
-    writer,
-    player_id,
-    tile_x,
-    tile_y,
-):
+async def send_update_player(writer, player_id, tile_x, tile_y):
     """Send Packet 13 using tile coordinates."""
 
     payload = bytearray()
 
     payload.append(player_id)
-
-    # Control
+    payload.append(0)
+    payload.append(0)
+    payload.append(0)
+    payload.append(0)
     payload.append(0)
 
-    # Pulley
-    payload.append(0)
-
-    # Misc
-    payload.append(0)
-
-    # Sleeping
-    payload.append(0)
-
-    # Selected item
-    payload.append(0)
-
-    # Terraria position is pixels.
     payload.extend(
         struct.pack(
             "<ff",
@@ -486,11 +314,7 @@ async def send_update_player(
         )
     )
 
-    await send_packet(
-        writer,
-        13,
-        bytes(payload),
-    )
+    await send_packet(writer, 13, bytes(payload))
 
 
 # ============================================================
@@ -500,101 +324,49 @@ async def send_update_player(
 class WorldMap:
     """Disk-backed Terraria world."""
 
-    def __init__(
-        self,
-        width,
-        height,
-    ):
+    def __init__(self, width, height):
+
         self.width = width
         self.height = height
-
-        self.total_tiles = (
-            width * height
-        )
+        self.total_tiles = width * height
 
         self.section_columns = (
-            width
-            + SECTION_WIDTH
-            - 1
+            width + SECTION_WIDTH - 1
         ) // SECTION_WIDTH
 
         self.section_rows = (
-            height
-            + SECTION_HEIGHT
-            - 1
+            height + SECTION_HEIGHT - 1
         ) // SECTION_HEIGHT
 
         self.sections = set()
 
-        WORLD_DIR.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
+        WORLD_DIR.mkdir(parents=True, exist_ok=True)
 
         print()
-        print(
-            "[*] Creating world storage"
-        )
-
-        print(
-            f"[*] Size: "
-            f"{width} x {height}"
-        )
-
-        print(
-            f"[*] Tiles: "
-            f"{self.total_tiles:,}"
-        )
+        print("[*] Creating world storage")
+        print(f"[*] Size: {width} x {height}")
+        print(f"[*] Tiles: {self.total_tiles:,}")
 
         self.files = {}
         self.maps = {}
 
         specs = {
-            "tiles": (
-                TILES_FILE,
-                2,
-            ),
-            "walls": (
-                WALLS_FILE,
-                2,
-            ),
-            "liquids": (
-                LIQUIDS_FILE,
-                2,
-            ),
-            "paint": (
-                PAINT_FILE,
-                2,
-            ),
-            "metadata": (
-                META_FILE,
-                1,
-            ),
-            "frames": (
-                FRAMES_FILE,
-                4,
-            ),
+            "tiles":    (TILES_FILE,   2),
+            "walls":    (WALLS_FILE,   2),
+            "liquids":  (LIQUIDS_FILE, 2),
+            "paint":    (PAINT_FILE,   2),
+            "metadata": (META_FILE,    1),
+            "frames":   (FRAMES_FILE,  4),
         }
 
-        for name, (
-            path,
-            bytes_per_tile,
-        ) in specs.items():
+        for name, (path, bytes_per_tile) in specs.items():
 
-            size = (
-                self.total_tiles
-                * bytes_per_tile
-            )
+            size = self.total_tiles * bytes_per_tile
 
-            file = open(
-                path,
-                "w+b",
-            )
-
+            file = open(path, "w+b")
             file.truncate(size)
 
             self.files[name] = file
-
             self.maps[name] = mmap.mmap(
                 file.fileno(),
                 size,
@@ -612,10 +384,7 @@ class WorldMap:
     ):
         """Write decoded section to mmap files."""
 
-        key = (
-            start_x,
-            start_y,
-        )
+        key = (start_x, start_y)
 
         if key in self.sections:
             return False
@@ -629,15 +398,8 @@ class WorldMap:
         if start_y >= self.height:
             return False
 
-        width = min(
-            width,
-            self.width - start_x,
-        )
-
-        height = min(
-            height,
-            self.height - start_y,
-        )
+        width = min(width, self.width - start_x)
+        height = min(height, self.height - start_y)
 
         if len(tiles) < width * height:
             return False
@@ -651,122 +413,71 @@ class WorldMap:
 
         for row in range(height):
 
-            section_row = (
-                row * width
-            )
+            section_row = row * width
 
             world_row = (
-                (start_y + row)
-                * self.width
+                (start_y + row) * self.width
                 + start_x
             )
 
             for col in range(width):
 
-                tile = tiles[
-                    section_row + col
-                ]
+                tile = tiles[section_row + col]
+                world_index = world_row + col
+                offset = world_index * 2
 
-                world_index = (
-                    world_row + col
-                )
-
-                offset = (
-                    world_index * 2
-                )
-
-                # Tile
                 struct.pack_into(
-                    "<H",
-                    tiles_map,
-                    offset,
+                    "<H", tiles_map, offset,
                     tile["tile_id"],
                 )
 
-                # Wall
                 struct.pack_into(
-                    "<H",
-                    walls_map,
-                    offset,
+                    "<H", walls_map, offset,
                     tile["wall_id"],
                 )
 
-                # Liquid
                 liquid_value = (
                     tile["liquid_amount"]
-                    | (
-                        tile["liquid_type"]
-                        << 8
-                    )
+                    | (tile["liquid_type"] << 8)
                 )
 
                 struct.pack_into(
-                    "<H",
-                    liquids_map,
-                    offset,
+                    "<H", liquids_map, offset,
                     liquid_value,
                 )
 
-                # Paint
                 paint_value = (
                     tile["tile_paint"]
-                    | (
-                        tile["wall_paint"]
-                        << 8
-                    )
+                    | (tile["wall_paint"] << 8)
                 )
 
                 struct.pack_into(
-                    "<H",
-                    paint_map,
-                    offset,
+                    "<H", paint_map, offset,
                     paint_value,
                 )
 
-                # Metadata
-                meta = (
-                    tile["brick_style"]
-                    & 0x07
-                )
+                meta = tile["brick_style"] & 0x07
 
                 if tile["half_block"]:
                     meta |= 1 << 3
-
                 if tile["actuator"]:
                     meta |= 1 << 4
-
                 if tile["inactive"]:
                     meta |= 1 << 5
-
                 if tile["invisible_block"]:
                     meta |= 1 << 6
-
                 if tile["invisible_wall"]:
                     meta |= 1 << 7
 
-                meta_map[
-                    world_index
-                ] = meta
+                meta_map[world_index] = meta
 
-                # Frame
                 frame_value = (
-                    (
-                        tile["frame_x"]
-                        & 0xFFFF
-                    )
-                    | (
-                        (
-                            tile["frame_y"]
-                            & 0xFFFF
-                        )
-                        << 16
-                    )
+                    (tile["frame_x"] & 0xFFFF)
+                    | ((tile["frame_y"] & 0xFFFF) << 16)
                 )
 
                 struct.pack_into(
-                    "<I",
-                    frames_map,
-                    world_index * 4,
+                    "<I", frames_map, world_index * 4,
                     frame_value,
                 )
 
@@ -778,14 +489,10 @@ class WorldMap:
         return True
 
     def flush(self):
-        """Flush mmap files."""
-
         for mapping in self.maps.values():
             mapping.flush()
 
     def close(self):
-        """Close all files."""
-
         try:
             self.flush()
         except Exception:
@@ -802,16 +509,11 @@ class WorldMap:
 # TILE DECODER
 # ============================================================
 
-def decode_tile(
-    data,
-    pos,
-):
+def decode_tile(data, pos):
     """Decode one Terraria tile."""
 
     if pos >= len(data):
-        raise ValueError(
-            "Tile data ended early"
-        )
+        raise ValueError("Tile data ended early")
 
     flags1 = data[pos]
     pos += 1
@@ -820,266 +522,128 @@ def decode_tile(
     flags3 = 0
     flags4 = 0
 
-    # Header 2
     if flags1 & 0x01:
-
         if pos >= len(data):
-            raise ValueError(
-                "Missing header 2"
-            )
-
+            raise ValueError("Missing header 2")
         flags2 = data[pos]
         pos += 1
 
-        # Header 3
         if flags2 & 0x01:
-
             if pos >= len(data):
-                raise ValueError(
-                    "Missing header 3"
-                )
-
+                raise ValueError("Missing header 3")
             flags3 = data[pos]
             pos += 1
 
-            # Header 4
             if flags3 & 0x01:
-
                 if pos >= len(data):
-                    raise ValueError(
-                        "Missing header 4"
-                    )
-
+                    raise ValueError("Missing header 4")
                 flags4 = data[pos]
                 pos += 1
 
-    active = bool(
-        flags1 & 0x02
-    )
+    active = bool(flags1 & 0x02)
 
     tile_id = 0
-
     frame_x = 0
     frame_y = 0
 
-    # --------------------------------------------------------
-    # Tile
-    # --------------------------------------------------------
-
     if active:
-
         if pos >= len(data):
-            raise ValueError(
-                "Missing tile ID"
-            )
-
+            raise ValueError("Missing tile ID")
         tile_id = data[pos]
         pos += 1
 
         if flags1 & 0x20:
-
             if pos >= len(data):
-                raise ValueError(
-                    "Missing tile ID high byte"
-                )
-
-            tile_id |= (
-                data[pos]
-                << 8
-            )
-
+                raise ValueError("Missing tile ID high byte")
+            tile_id |= data[pos] << 8
             pos += 1
 
         if frame_important(tile_id):
-
             if pos + 4 > len(data):
-                raise ValueError(
-                    "Missing tile frame"
-                )
+                raise ValueError("Missing tile frame")
 
             frame_x = struct.unpack_from(
-                "<h",
-                data,
-                pos,
+                "<h", data, pos,
             )[0]
-
             pos += 2
 
             frame_y = struct.unpack_from(
-                "<h",
-                data,
-                pos,
+                "<h", data, pos,
             )[0]
-
             pos += 2
-
-    # --------------------------------------------------------
-    # Wall
-    # --------------------------------------------------------
 
     wall_id = 0
 
     if flags1 & 0x04:
-
         if pos >= len(data):
-            raise ValueError(
-                "Missing wall ID"
-            )
-
+            raise ValueError("Missing wall ID")
         wall_id = data[pos]
         pos += 1
 
         if flags3 & 0x40:
-
             if pos >= len(data):
-                raise ValueError(
-                    "Missing wall high byte"
-                )
-
-            wall_id |= (
-                data[pos]
-                << 8
-            )
-
+                raise ValueError("Missing wall high byte")
+            wall_id |= data[pos] << 8
             pos += 1
-
-    # --------------------------------------------------------
-    # Liquid
-    # --------------------------------------------------------
 
     liquid_amount = 0
     liquid_type = 0
 
-    liquid_bits = (
-        flags1 & 0x18
-    )
+    liquid_bits = flags1 & 0x18
 
     if liquid_bits:
-
         if pos >= len(data):
-            raise ValueError(
-                "Missing liquid amount"
-            )
+            raise ValueError("Missing liquid amount")
 
         if liquid_bits == 0x08:
-
-            # Water
             liquid_type = 1
-
-            # Shimmer
             if flags3 & 0x80:
                 liquid_type = 4
-
         elif liquid_bits == 0x10:
-
-            # Lava
             liquid_type = 2
-
         elif liquid_bits == 0x18:
-
-            # Honey
             liquid_type = 3
 
         liquid_amount = data[pos]
         pos += 1
 
-    # --------------------------------------------------------
-    # Paint
-    # --------------------------------------------------------
-
     tile_paint = 0
     wall_paint = 0
 
     if flags3 & 0x08:
-
         if pos >= len(data):
-            raise ValueError(
-                "Missing tile paint"
-            )
-
+            raise ValueError("Missing tile paint")
         tile_paint = data[pos]
         pos += 1
 
     if flags3 & 0x10:
-
         if pos >= len(data):
-            raise ValueError(
-                "Missing wall paint"
-            )
-
+            raise ValueError("Missing wall paint")
         wall_paint = data[pos]
         pos += 1
 
-    # --------------------------------------------------------
-    # Brick style
-    # --------------------------------------------------------
+    brick_style = (flags2 >> 4) & 0x07
+    half_block = (brick_style == 1)
 
-    brick_style = (
-        (flags2 >> 4)
-        & 0x07
-    )
-
-    half_block = (
-        brick_style == 1
-    )
-
-    # --------------------------------------------------------
-    # Other flags
-    # --------------------------------------------------------
-
-    actuator = bool(
-        flags3 & 0x02
-    )
-
-    inactive = bool(
-        flags3 & 0x04
-    )
-
-    invisible_block = bool(
-        flags4 & 0x02
-    )
-
-    invisible_wall = bool(
-        flags4 & 0x04
-    )
-
-    fullbright_block = bool(
-        flags4 & 0x08
-    )
-
-    fullbright_wall = bool(
-        flags4 & 0x10
-    )
-
-    # --------------------------------------------------------
-    # RLE
-    # --------------------------------------------------------
+    actuator = bool(flags3 & 0x02)
+    inactive = bool(flags3 & 0x04)
+    invisible_block = bool(flags4 & 0x02)
+    invisible_wall = bool(flags4 & 0x04)
+    fullbright_block = bool(flags4 & 0x08)
+    fullbright_wall = bool(flags4 & 0x10)
 
     run = 0
 
     if flags1 & 0x40:
-
         if pos >= len(data):
-            raise ValueError(
-                "Missing RLE byte"
-            )
-
+            raise ValueError("Missing RLE byte")
         run = data[pos]
         pos += 1
 
     elif flags1 & 0x80:
-
         if pos + 2 > len(data):
-            raise ValueError(
-                "Missing RLE ushort"
-            )
-
-        run = struct.unpack_from(
-            "<H",
-            data,
-            pos,
-        )[0]
-
+            raise ValueError("Missing RLE ushort")
+        run = struct.unpack_from("<H", data, pos)[0]
         pos += 2
 
     return (
@@ -1114,93 +678,47 @@ def parse_section(payload):
     """Decode Terraria Packet 10."""
 
     try:
-        data = zlib.decompress(
-            payload,
-            -zlib.MAX_WBITS,
-        )
+        data = zlib.decompress(payload, -zlib.MAX_WBITS)
     except zlib.error:
         data = zlib.decompress(payload)
 
     if len(data) < 12:
-        raise ValueError(
-            "Section payload too short"
-        )
+        raise ValueError("Section payload too short")
 
     pos = 0
 
-    start_x = struct.unpack_from(
-        "<i",
-        data,
-        pos,
-    )[0]
+    start_x = struct.unpack_from("<i", data, pos)[0]
     pos += 4
 
-    start_y = struct.unpack_from(
-        "<i",
-        data,
-        pos,
-    )[0]
+    start_y = struct.unpack_from("<i", data, pos)[0]
     pos += 4
 
-    width = struct.unpack_from(
-        "<h",
-        data,
-        pos,
-    )[0]
+    width = struct.unpack_from("<h", data, pos)[0]
     pos += 2
 
-    height = struct.unpack_from(
-        "<h",
-        data,
-        pos,
-    )[0]
+    height = struct.unpack_from("<h", data, pos)[0]
     pos += 2
 
     if width <= 0 or height <= 0:
-        raise ValueError(
-            f"Invalid section size "
-            f"{width}x{height}"
-        )
+        raise ValueError(f"Invalid section size {width}x{height}")
 
     if width > SECTION_WIDTH:
-        raise ValueError(
-            f"Section width too large: "
-            f"{width}"
-        )
+        raise ValueError(f"Section width too large: {width}")
 
     if height > SECTION_HEIGHT:
-        raise ValueError(
-            f"Section height too large: "
-            f"{height}"
-        )
+        raise ValueError(f"Section height too large: {height}")
 
     total = width * height
-
     tiles = []
     append_tile = tiles.append
 
     while len(tiles) < total:
-
-        tile, run, pos = decode_tile(
-            data,
-            pos,
-        )
-
-        count = min(
-            run + 1,
-            total - len(tiles),
-        )
-
+        tile, run, pos = decode_tile(data, pos)
+        count = min(run + 1, total - len(tiles))
         for _ in range(count):
             append_tile(tile)
 
-    return (
-        start_x,
-        start_y,
-        width,
-        height,
-        tiles,
-    )
+    return start_x, start_y, width, height, tiles
 
 
 # ============================================================
@@ -1213,77 +731,37 @@ def parse_world_info(payload):
     pos = 0
 
     if len(payload) < 24:
-        raise ValueError(
-            "WorldInfo packet too short"
-        )
+        raise ValueError("WorldInfo packet too short")
 
-    # World time
     pos += 4
-
-    # Day flags
+    pos += 1
     pos += 1
 
-    # Moon phase
-    pos += 1
-
-    width = struct.unpack_from(
-        "<h",
-        payload,
-        pos,
-    )[0]
+    width = struct.unpack_from("<h", payload, pos)[0]
     pos += 2
 
-    height = struct.unpack_from(
-        "<h",
-        payload,
-        pos,
-    )[0]
+    height = struct.unpack_from("<h", payload, pos)[0]
     pos += 2
 
-    spawn_x = struct.unpack_from(
-        "<h",
-        payload,
-        pos,
-    )[0]
+    spawn_x = struct.unpack_from("<h", payload, pos)[0]
     pos += 2
 
-    spawn_y = struct.unpack_from(
-        "<h",
-        payload,
-        pos,
-    )[0]
+    spawn_y = struct.unpack_from("<h", payload, pos)[0]
     pos += 2
 
-    surface = struct.unpack_from(
-        "<h",
-        payload,
-        pos,
-    )[0]
+    surface = struct.unpack_from("<h", payload, pos)[0]
     pos += 2
 
-    rock_layer = struct.unpack_from(
-        "<h",
-        payload,
-        pos,
-    )[0]
+    rock_layer = struct.unpack_from("<h", payload, pos)[0]
     pos += 2
 
-    world_id = struct.unpack_from(
-        "<i",
-        payload,
-        pos,
-    )[0]
+    world_id = struct.unpack_from("<i", payload, pos)[0]
     pos += 4
 
-    name, pos = read_string(
-        payload,
-        pos,
-    )
+    name, pos = read_string(payload, pos)
 
     if pos >= len(payload):
-        raise ValueError(
-            "Missing game mode"
-        )
+        raise ValueError("Missing game mode")
 
     game_mode = payload[pos]
     pos += 1
@@ -1291,9 +769,7 @@ def parse_world_info(payload):
     world_uuid = b""
 
     if pos + 16 <= len(payload):
-        world_uuid = payload[
-            pos:pos + 16
-        ]
+        world_uuid = payload[pos:pos + 16]
         pos += 16
 
     return {
@@ -1311,238 +787,341 @@ def parse_world_info(payload):
 
 
 # ============================================================
-# COLORS
+# TILE COLORS  (complete & tuned)
 # ============================================================
 
 TILE_COLORS = {
-    0: (151, 107, 75),
-    1: (128, 128, 128),
-    2: (63, 150, 63),
-    3: (76, 175, 76),
-    4: (151, 107, 75),
-    5: (139, 96, 62),
+    # ---------- پایه ----------
+    0:   (151, 107, 75),    # Dirt
+    1:   (128, 128, 128),   # Stone
+    2:   (63, 150, 63),     # Grass
+    3:   (76, 175, 76),     # Plants
+    4:   (240, 200, 90),    # Torch
+    5:   (139, 96, 62),     # Tree
+    6:   (140, 140, 150),   # Iron
+    7:   (184, 115, 51),    # Copper
+    8:   (218, 165, 55),    # Gold
+    9:   (200, 200, 210),   # Silver
+    10:  (140, 100, 70),    # Door closed
+    11:  (150, 110, 80),    # Door open
+    12:  (255, 90, 150),    # Heart Crystal
+    13:  (80, 60, 40),      # Bottle
+    14:  (150, 110, 70),    # Table
+    15:  (140, 100, 60),    # Chair
+    16:  (100, 100, 110),   # Anvil
+    17:  (90, 90, 100),     # Furnace
+    18:  (160, 120, 80),    # Work Bench
+    19:  (160, 120, 80),    # Platform
+    20:  (140, 100, 70),    # Sapling
+    21:  (230, 185, 70),    # Chest
+    22:  (110, 110, 160),   # Demonite
+    23:  (103, 78, 125),    # Corrupt grass
+    24:  (83, 145, 67),     # Corrupt plants
+    25:  (112, 80, 130),    # Ebonstone
+    26:  (95, 55, 130),     # Demon Altar
+    27:  (110, 90, 130),    # Sunflower
+    28:  (110, 90, 130),    # Pot
+    29:  (110, 90, 130),    # Piggy Bank
+    30:  (151, 107, 75),    # Wood
+    31:  (150, 70, 200),    # Shadow Orb / Crimson Heart
 
-    6: (120, 120, 120),
-    7: (184, 115, 51),
-    8: (218, 165, 55),
-    9: (155, 155, 170),
+    # ---------- آجرها ----------
+    38:  (100, 100, 110),
+    39:  (110, 110, 120),
+    40:  (90, 90, 100),
+    41:  (100, 100, 130),   # Blue Dungeon
+    42:  (100, 130, 100),   # Green Dungeon
+    43:  (140, 100, 140),   # Pink Dungeon
 
-    23: (103, 78, 125),
-    24: (83, 145, 67),
-    25: (112, 80, 130),
+    # ---------- Hell ----------
+    57:  (134, 61, 43),     # Hellstone brick
+    58:  (230, 100, 50),    # Hellstone ore
 
-    30: (151, 107, 75),
-    31: (126, 84, 52),
+    # ---------- Jungle ----------
+    59:  (78, 145, 67),     # Jungle grass
+    60:  (69, 132, 61),     # Jungle plants
+    61:  (90, 120, 60),     # Jungle vines
+    62:  (110, 80, 55),     # Jungle thorn
 
-    37: (76, 76, 82),
-    38: (91, 91, 96),
+    # ---------- Meteor / Obsidian ----------
+    37:  (90, 80, 110),     # Meteorite
+    75:  (60, 55, 75),      # Obsidian
 
-    53: (218, 198, 134),
+    # ---------- Cactus / Sand ----------
+    53:  (218, 198, 134),   # Sand
 
-    57: (134, 61, 43),
-    58: (107, 77, 56),
+    # ---------- Corruption ----------
+    109: (188, 111, 190),   # Hallowed grass
+    110: (168, 94, 180),    # Hallowed plants
+    112: (90, 70, 120),     # Ebonsand
 
-    59: (78, 145, 67),
-    60: (69, 132, 61),
+    # ---------- Pearl / Snow / Ice ----------
+    116: (230, 230, 245),   # Pearlsand
+    147: (245, 248, 252),   # Snow Block
+    148: (235, 240, 248),   # Snow Brick
+    149: (240, 245, 250),   # Snow Platform
+    150: (200, 210, 225),   # Ice (thin)
+    161: (185, 225, 245),   # Ice Block
+    162: (170, 215, 240),   # Ice Brick
+    163: (185, 225, 245),   # Ice Platform
 
-    69: (100, 63, 117),
-    70: (112, 68, 130),
+    # ---------- Cloud / Rain ----------
+    189: (250, 250, 255),   # Cloud
+    190: (170, 175, 195),   # Rain Cloud
+    196: (215, 225, 245),   # Snow Cloud
 
-    75: (141, 83, 55),
-    76: (112, 66, 49),
-
-    109: (188, 111, 190),
-    110: (168, 94, 180),
-    112: (115, 55, 135),
-
-    116: (205, 205, 220),
-
-    147: (190, 220, 235),
-    161: (167, 215, 235),
-
+    # ---------- Crimson ----------
     199: (155, 48, 53),
-    200: (170, 56, 60),
-    203: (145, 45, 48),
-    204: (125, 38, 42),
+    200: (170, 56, 60),     # Crimson grass
+    203: (145, 45, 48),     # Crimstone
+    204: (125, 38, 42),     # Crimtane
+
+    # ---------- Hardmode ----------
+    211: (100, 220, 150),   # Chlorophyte
+    212: (140, 90, 60),     # Titanium
+    213: (90, 130, 180),    # Adamantite
+    214: (200, 200, 220),   # Palladium
+    215: (150, 150, 100),   # Orichalcum
+    216: (130, 190, 220),   # Mythril
+
+    # ---------- Lihzahrd ----------
+    226: (180, 150, 100),   # Lihzahrd Brick
+    227: (255, 140, 60),    # Life Fruit
+    237: (255, 200, 80),    # Lihzahrd Altar
+    238: (140, 255, 100),   # Plantera's Bulb
+    239: (200, 130, 80),    # Spooky wood
+
+    # ---------- Enchanted Sword ----------
+    186: (140, 220, 255),   # Enchanted Sword in Stone
+    187: (140, 220, 255),   # Enchanted Sword (alt)
+
+    # ---------- Pyramids ----------
+    151: (200, 180, 130),   # Pyramid brick
+    152: (200, 180, 130),
+    153: (200, 180, 130),
+
+    # ---------- Living wood / leaf ----------
+    191: (110, 80, 55),     # Living Wood
+    192: (100, 200, 90),    # Leaf
+    193: (110, 80, 55),     # Living Wood Wall
+
+    # ---------- Bricks ----------
+    221: (150, 130, 110),   # Sandstone
+    222: (150, 130, 110),
 }
 
+
+# ============================================================
+# WALL COLORS
+# ============================================================
 
 WALL_COLORS = {
-    1: (105, 80, 60),
-    2: (95, 95, 95),
-    3: (75, 65, 55),
-    4: (105, 75, 50),
-    5: (80, 80, 85),
-    7: (90, 55, 90),
-    8: (75, 50, 85),
-    9: (70, 70, 75),
-    10: (115, 85, 60),
-    15: (85, 60, 45),
-    16: (70, 55, 45),
-    21: (120, 105, 75),
-    23: (90, 60, 100),
-    24: (95, 50, 105),
+    1:   (105, 80, 60),
+    2:   (95, 95, 95),
+    3:   (75, 65, 55),
+    4:   (105, 75, 50),
+    5:   (80, 80, 85),
+    6:   (110, 60, 60),
+    7:   (90, 55, 90),
+    8:   (75, 50, 85),
+    9:   (70, 70, 75),
+    10:  (115, 85, 60),
+    11:  (100, 80, 55),
+    12:  (90, 70, 50),
+    13:  (140, 110, 70),
+    14:  (120, 100, 70),
+    15:  (85, 60, 45),
+    16:  (70, 55, 45),
+    17:  (60, 60, 70),
+    18:  (90, 110, 90),
+    19:  (110, 100, 90),
+    20:  (100, 90, 80),
+    21:  (120, 105, 75),
+    22:  (100, 80, 70),
+    23:  (90, 60, 100),
+    24:  (95, 50, 105),
+    25:  (120, 100, 80),
+    26:  (100, 90, 80),
+    27:  (200, 210, 220),   # Cloud wall
+    28:  (150, 155, 175),   # Rain cloud wall
+    29:  (80, 90, 100),
+    30:  (120, 90, 60),
+    40:  (180, 200, 220),   # Ice wall
+    41:  (90, 90, 90),
+    44:  (160, 140, 100),
+    45:  (120, 120, 120),
 }
 
+
+# ============================================================
+# PAINT COLORS
+# ============================================================
 
 PAINT_COLORS = {
-    0: (255, 255, 255),
-
-    1: (255, 0, 0),
-    2: (255, 127, 0),
-    3: (255, 255, 0),
-    4: (127, 255, 0),
-    5: (0, 255, 0),
-    6: (0, 255, 127),
-    7: (0, 255, 255),
-    8: (0, 127, 255),
-    9: (0, 0, 255),
-    10: (127, 0, 255),
-    11: (191, 0, 255),
-    12: (255, 0, 127),
-
-    13: (127, 0, 0),
-    14: (127, 63, 0),
-    15: (127, 127, 0),
-    16: (63, 127, 0),
-    17: (0, 127, 0),
-    18: (0, 127, 63),
-    19: (0, 127, 127),
-    20: (0, 63, 127),
-    21: (0, 0, 127),
-    22: (63, 0, 127),
-    23: (95, 0, 127),
-    24: (127, 0, 63),
-
-    25: (0, 0, 0),
-    26: (255, 255, 255),
-    27: (128, 128, 128),
-    28: (127, 63, 31),
-
-    29: (0, 0, 0),
-    30: (255, 255, 255),
-    31: (255, 255, 255),
+    0:   (255, 255, 255),
+    1:   (255, 0, 0),
+    2:   (255, 127, 0),
+    3:   (255, 255, 0),
+    4:   (127, 255, 0),
+    5:   (0, 255, 0),
+    6:   (0, 255, 127),
+    7:   (0, 255, 255),
+    8:   (0, 127, 255),
+    9:   (0, 0, 255),
+    10:  (127, 0, 255),
+    11:  (191, 0, 255),
+    12:  (255, 0, 127),
+    13:  (127, 0, 0),
+    14:  (127, 63, 0),
+    15:  (127, 127, 0),
+    16:  (63, 127, 0),
+    17:  (0, 127, 0),
+    18:  (0, 127, 63),
+    19:  (0, 127, 127),
+    20:  (0, 63, 127),
+    21:  (0, 0, 127),
+    22:  (63, 0, 127),
+    23:  (95, 0, 127),
+    24:  (127, 0, 63),
+    25:  (0, 0, 0),         # Deep red
+    26:  (255, 255, 255),   # Deep white
+    27:  (128, 128, 128),   # Deep gray
+    28:  (127, 63, 31),     # Deep brown
+    29:  (0, 0, 0),         # Shadow
+    30:  (255, 255, 255),   # Negative (special)
+    31:  (255, 255, 255),   # Illuminant
 }
 
+
+# ============================================================
+# LIQUID COLORS
+# ============================================================
 
 LIQUID_COLORS = {
-    1: (52, 125, 220),
-    2: (230, 70, 25),
-    3: (225, 155, 45),
-    4: (160, 80, 225),
+    1: (52, 125, 220),   # Water
+    2: (230, 70, 25),    # Lava
+    3: (225, 155, 45),   # Honey
+    4: (160, 80, 225),   # Shimmer
 }
 
 
-def fallback_tile_color(
-    tile_id,
-    wall=False,
-):
-    """Generate a conservative fallback color."""
+# ============================================================
+# HIGHLIGHT TILES
+# آیتم‌های مهم که باید روی نقشه خودنمایی کنن
+# ============================================================
+
+HIGHLIGHT_TILES = {
+    12:  (255, 80, 150),    # Heart Crystal
+    21:  (255, 220, 60),    # Chest
+    26:  (200, 80, 255),    # Demon Altar
+    31:  (180, 60, 220),    # Shadow Orb / Crimson Heart
+    186: (120, 220, 255),   # Enchanted Sword in Stone
+    187: (120, 220, 255),   # Enchanted Sword in Stone (alt)
+    227: (255, 140, 60),    # Life Fruit
+    237: (255, 200, 80),    # Lihzahrd Altar
+    238: (140, 255, 100),   # Plantera's Bulb
+}
+
+
+LEGEND_ENTRIES = [
+    ("Heart Crystal",       (255, 80, 150)),
+    ("Chest",               (255, 220, 60)),
+    ("Demon Altar",         (200, 80, 255)),
+    ("Shadow Orb / Heart",  (180, 60, 220)),
+    ("Enchanted Sword",     (120, 220, 255)),
+    ("Life Fruit",          (255, 140, 60)),
+    ("Lihzahrd Altar",      (255, 200, 80)),
+    ("Plantera's Bulb",     (140, 255, 100)),
+    ("Water",               (52, 125, 220)),
+    ("Lava",                (230, 70, 25)),
+    ("Honey",               (225, 155, 45)),
+    ("Shimmer",             (160, 80, 225)),
+    ("Snow / Ice",          (225, 240, 250)),
+    ("Cloud / Sky Island",  (250, 250, 255)),
+]
+
+
+# ============================================================
+# COLOR HELPERS
+# ============================================================
+
+def fallback_tile_color(tile_id, wall=False):
+    """Neutral fallback — تولید رنگ اشتباه نکن."""
 
     if wall:
+        # فقط تیره‌سازی، بدون پترن‌های عجیب
+        return (95, 80, 70)
 
-        value = (
-            tile_id * 37
-        ) % 80
+    # رنگ‌های خنثی بر اساس شناسه — ملایم
+    neutral = [
+        (120, 120, 120),
+        (140, 110, 85),
+        (110, 140, 85),
+        (165, 145, 95),
+        (120, 100, 85),
+        (95, 120, 145),
+        (140, 85, 85),
+        (105, 85, 125),
+        (85, 125, 95),
+        (150, 115, 75),
+        (120, 120, 130),
+        (150, 145, 130),
+    ]
 
-        base = 55 + value
-
-        return (
-            base,
-            max(45, base - 10),
-            max(40, base - 20),
-        )
-
-    colors = (
-        (125, 125, 125),
-        (145, 105, 75),
-        (105, 145, 75),
-        (170, 145, 85),
-        (115, 90, 70),
-        (90, 120, 150),
-        (145, 75, 75),
-        (100, 75, 130),
-        (80, 130, 90),
-        (155, 110, 65),
-        (115, 115, 125),
-        (155, 145, 125),
-    )
-
-    return colors[tile_id % 12]
+    return neutral[tile_id % 12]
 
 
 def base_tile_color(tile_id):
     return TILE_COLORS.get(
         tile_id,
-        fallback_tile_color(
-            tile_id,
-            False,
-        ),
+        fallback_tile_color(tile_id, False),
     )
 
 
 def base_wall_color(wall_id):
     return WALL_COLORS.get(
         wall_id,
-        fallback_tile_color(
-            wall_id,
-            True,
-        ),
+        fallback_tile_color(wall_id, True),
     )
 
 
-def apply_maphelper_paint(
-    base,
-    paint_id,
-    is_wall,
-):
-    """Approximate MapHelper paint."""
+def apply_maphelper_paint(base, paint_id, is_wall):
+    """Approximate MapHelper paint (corrected)."""
 
-    if paint_id == 0:
+    if paint_id == 0 or paint_id == 31:
         return base
 
-    paint = PAINT_COLORS.get(
-        paint_id,
-        (255, 255, 255),
-    )
+    # ---------- Deep paints: کامل جایگزین ----------
+    if 25 <= paint_id <= 28:
+        return PAINT_COLORS.get(paint_id, base)
 
-    r, g, b = base
-    pr, pg, pb = paint
-
-    if paint_id == 31:
-        return base
-
+    # ---------- Shadow ----------
     if paint_id == 29:
-
-        factor = 0.3
-
         return (
-            int(r * factor),
-            int(g * factor),
-            int(b * factor),
+            int(base[0] * 0.3),
+            int(base[1] * 0.3),
+            int(base[2] * 0.3),
         )
 
+    # ---------- Negative ----------
     if paint_id == 30:
-
         if is_wall:
-
             return (
-                int((255 - r) * 0.5),
-                int((255 - g) * 0.5),
-                int((255 - b) * 0.5),
+                int((255 - base[0]) * 0.5),
+                int((255 - base[1]) * 0.5),
+                int((255 - base[2]) * 0.5),
             )
-
         return (
-            255 - r,
-            255 - g,
-            255 - b,
+            255 - base[0],
+            255 - base[1],
+            255 - base[2],
         )
 
-    maximum = max(
-        r,
-        g,
-        b,
-    )
+    # ---------- Normal paint (multiply) ----------
+    paint = PAINT_COLORS.get(paint_id, (255, 255, 255))
+
+    maximum = max(base)
+    pr, pg, pb = paint
 
     return (
         int(pr * maximum / 255),
@@ -1551,128 +1130,61 @@ def apply_maphelper_paint(
     )
 
 
-def get_liquid_color(
-    liquid_type,
-    amount,
-):
-    """Return liquid color."""
+def get_liquid_color(liquid_type):
+    """Return pure liquid color (before blending)."""
 
-    color = LIQUID_COLORS.get(
-        liquid_type
-    )
-
-    if color is None:
-        return None
-
-    strength = (
-        0.45
-        + 0.55
-        * (
-            amount / 255.0
-        )
-    )
-
-    return tuple(
-        max(
-            0,
-            min(
-                255,
-                int(
-                    12
-                    + channel
-                    * strength
-                ),
-            ),
-        )
-        for channel in color
-    )
+    return LIQUID_COLORS.get(liquid_type)
 
 
-def background_color(
-    y,
-    surface,
-    rock_layer,
-    height,
-):
-    """Approximate Terraria background."""
+def background_color(y, surface, rock_layer, height):
+    """Approximate Terraria background (smooth gradient)."""
 
     if surface <= 0:
-        surface = int(
-            height * 0.30
-        )
+        surface = int(height * 0.30)
 
     if rock_layer <= surface:
-        rock_layer = (
-            surface
-            + int(height * 0.20)
-        )
+        rock_layer = surface + int(height * 0.20)
 
+    # ---------- Sky ----------
     if y < surface:
+        ratio = y / max(1, surface)
 
-        ratio = (
-            y
-            / max(
-                1,
-                surface,
-            )
-        )
-
-        top = (
-            90,
-            175,
-            235,
-        )
-
-        bottom = (
-            135,
-            205,
-            235,
-        )
+        top    = (85, 170, 235)
+        bottom = (150, 210, 240)
 
         return tuple(
             int(
                 top[i]
-                + (
-                    bottom[i]
-                    - top[i]
-                )
-                * ratio
+                + (bottom[i] - top[i]) * ratio
             )
             for i in range(3)
         )
 
+    # ---------- Dirt ----------
     if y < rock_layer:
-        return (
-            151,
-            107,
-            75,
+        depth = (
+            (y - surface)
+            / max(1, rock_layer - surface)
         )
 
+        return (
+            int(151 - depth * 20),
+            int(107 - depth * 15),
+            int(75  - depth * 10),
+        )
+
+    # ---------- Stone / deeper ----------
     depth = (
-        y - rock_layer
-    ) / max(
-        1,
-        height - rock_layer,
+        (y - rock_layer)
+        / max(1, height - rock_layer)
     )
 
-    value = max(
-        55,
-        int(
-            115
-            - depth * 40
-        ),
-    )
+    v = max(45, int(115 - depth * 55))
 
     return (
-        value,
-        value,
-        max(
-            60,
-            int(
-                120
-                - depth * 35
-            ),
-        ),
+        v,
+        v,
+        max(50, int(120 - depth * 45)),
     )
 
 
@@ -1689,100 +1201,117 @@ def pixel_color(
     rock_layer,
     height,
 ):
-    """Render one map pixel."""
+    """
+    Render one map pixel.
 
-    liquid = get_liquid_color(
-        liquid_type,
-        liquid_amount,
-    )
+    ترتیب درست Terraria:
+        background -> wall -> tile -> paint -> liquid(blend) -> highlight
+    """
 
-    if liquid is not None:
-        return liquid
+    has_tile = (tile_id != 0) and not (meta & 0x40)  # invisible_block
+    is_inactive = bool(meta & 0x20)                  # actuated
+    has_wall = (wall_id != 0) and not (meta & 0x80)  # invisible_wall
 
-    # Active tile
-    if tile_id != 0:
+    bg = background_color(y, surface, rock_layer, height)
 
-        if meta & 0x40:
-            return background_color(
-                y,
-                surface,
-                rock_layer,
-                height,
+    color = bg
+
+    # ---------- Wall ----------
+    if has_wall:
+        color = base_wall_color(wall_id)
+        color = apply_maphelper_paint(color, wall_paint, True)
+
+        color = (
+            int(color[0] * 0.82),
+            int(color[1] * 0.82),
+            int(color[2] * 0.82),
+        )
+
+    # ---------- Tile ----------
+    if has_tile and not is_inactive:
+        color = base_tile_color(tile_id)
+        color = apply_maphelper_paint(color, tile_paint, False)
+
+        brick = meta & 0x07
+        if brick:
+            f = 0.92 if brick == 1 else 0.86
+            color = (
+                int(color[0] * f),
+                int(color[1] * f),
+                int(color[2] * f),
             )
 
-        color = base_tile_color(
-            tile_id
+    elif has_tile and is_inactive:
+        # Actuated block: نیمه‌شفاف روی وال/پس‌زمینه
+        tc = base_tile_color(tile_id)
+        tc = apply_maphelper_paint(tc, tile_paint, False)
+
+        color = (
+            int(color[0] * 0.5 + tc[0] * 0.5),
+            int(color[1] * 0.5 + tc[1] * 0.5),
+            int(color[2] * 0.5 + tc[2] * 0.5),
         )
 
-        color = apply_maphelper_paint(
-            color,
-            tile_paint,
-            False,
-        )
+    # ---------- Liquid (blend) ----------
+    if liquid_type and liquid_amount > 0:
+        lc = get_liquid_color(liquid_type)
 
-        if meta & 0x20:
+        if lc is not None:
+            # شدت شفافیت بر اساس مقدار مایع
+            strength = 0.35 + 0.55 * (liquid_amount / 255.0)
 
-            color = tuple(
-                int(
-                    channel * 0.55
+            color = (
+                int(color[0] * (1 - strength) + lc[0] * strength),
+                int(color[1] * (1 - strength) + lc[1] * strength),
+                int(color[2] * (1 - strength) + lc[2] * strength),
+            )
+
+    # ---------- Highlight ----------
+    if has_tile:
+        hl = HIGHLIGHT_TILES.get(tile_id)
+
+        if hl is not None:
+            # ترکیب 70% رنگ highlight + 30% رنگ اصلی
+            color = (
+                int(hl[0] * 0.7 + color[0] * 0.3),
+                int(hl[1] * 0.7 + color[1] * 0.3),
+                int(hl[2] * 0.7 + color[2] * 0.3),
+            )
+
+    return color
+
+
+# ============================================================
+# LEGEND WRITER
+# ============================================================
+
+def write_legend():
+    """Write a small legend next to the PNG."""
+
+    try:
+        with open(LEGEND_FILE, "w", encoding="utf-8") as f:
+            f.write("Terraria Map Legend\n")
+            f.write("=" * 40 + "\n\n")
+
+            for name, (r, g, b) in LEGEND_ENTRIES:
+                f.write(
+                    f"  {name:<22} RGB=({r:>3},{g:>3},{b:>3})  "
+                    f"#{r:02X}{g:02X}{b:02X}\n"
                 )
-                for channel in color
-            )
 
-        brick_style = (
-            meta & 0x07
-        )
+            f.write("\n")
+            f.write("Highlighted special tiles:\n")
 
-        if brick_style:
-
-            factor = 0.90
-
-            if brick_style >= 2:
-                factor = 0.86
-
-            color = tuple(
-                int(
-                    channel * factor
+            for tile_id, color in HIGHLIGHT_TILES.items():
+                r, g, b = color
+                f.write(
+                    f"  tile_id={tile_id:<5} RGB=({r:>3},{g:>3},{b:>3})\n"
                 )
-                for channel in color
-            )
 
-        return color
+        print(f"[+] Legend saved: {LEGEND_FILE.resolve()}")
 
-    # Wall
-    if wall_id != 0:
-
-        if meta & 0x80:
-            return background_color(
-                y,
-                surface,
-                rock_layer,
-                height,
-            )
-
-        color = base_wall_color(
-            wall_id
-        )
-
-        color = apply_maphelper_paint(
-            color,
-            wall_paint,
-            True,
-        )
-
-        return tuple(
-            int(
-                channel * 0.78
-            )
-            for channel in color
-        )
-
-    return background_color(
-        y,
-        surface,
-        rock_layer,
-        height,
-    )
+    except Exception as exc:
+        print(f"[!] Legend write error: {exc}")
 
 
 # ============================================================
@@ -1795,31 +1324,14 @@ def create_png(world, info):
     width = world.width
     height = world.height
 
-    surface = info.get(
-        "surface",
-        int(height * 0.30),
-    )
-
-    rock_layer = info.get(
-        "rock_layer",
-        int(height * 0.50),
-    )
+    surface = info.get("surface", int(height * 0.30))
+    rock_layer = info.get("rock_layer", int(height * 0.50))
 
     print()
     print("[*] Rendering PNG...")
+    print(f"[*] Resolution: {width}x{height}")
 
-    print(
-        f"[*] Resolution: "
-        f"{width}x{height}"
-    )
-
-    image = Image.new(
-        "RGB",
-        (
-            width,
-            height,
-        ),
-    )
+    image = Image.new("RGB", (width, height))
 
     strip_height = 16
 
@@ -1829,102 +1341,49 @@ def create_png(world, info):
     paint_map = world.maps["paint"]
     metadata_map = world.maps["metadata"]
 
-    for y0 in range(
-        0,
-        height,
-        strip_height,
-    ):
+    for y0 in range(0, height, strip_height):
 
-        current_height = min(
-            strip_height,
-            height - y0,
-        )
+        current_height = min(strip_height, height - y0)
 
-        pixels = bytearray(
-            width
-            * current_height
-            * 3
-        )
+        pixels = bytearray(width * current_height * 3)
 
-        for sy in range(
-            current_height
-        ):
+        for sy in range(current_height):
 
             y = y0 + sy
-
-            row_index = (
-                y * width
-            )
+            row_index = y * width
 
             for x in range(width):
 
-                index = (
-                    row_index + x
-                )
-
-                offset = (
-                    index * 2
-                )
+                index = row_index + x
+                offset = index * 2
 
                 tile_id = (
                     tiles_map[offset]
-                    | (
-                        tiles_map[
-                            offset + 1
-                        ]
-                        << 8
-                    )
+                    | (tiles_map[offset + 1] << 8)
                 )
 
                 wall_id = (
                     walls_map[offset]
-                    | (
-                        walls_map[
-                            offset + 1
-                        ]
-                        << 8
-                    )
+                    | (walls_map[offset + 1] << 8)
                 )
 
                 liquid_value = (
                     liquids_map[offset]
-                    | (
-                        liquids_map[
-                            offset + 1
-                        ]
-                        << 8
-                    )
+                    | (liquids_map[offset + 1] << 8)
                 )
 
-                liquid_amount = (
-                    liquid_value & 0xFF
-                )
-
-                liquid_type = (
-                    liquid_value >> 8
-                )
+                liquid_amount = liquid_value & 0xFF
+                liquid_type = liquid_value >> 8
 
                 paint_value = (
                     paint_map[offset]
-                    | (
-                        paint_map[
-                            offset + 1
-                        ]
-                        << 8
-                    )
+                    | (paint_map[offset + 1] << 8)
                 )
 
-                tile_paint = (
-                    paint_value & 0xFF
-                )
+                tile_paint = paint_value & 0xFF
+                wall_paint = paint_value >> 8
 
-                wall_paint = (
-                    paint_value >> 8
-                )
-
-                meta = metadata_map[
-                    index
-                ]
+                meta = metadata_map[index]
 
                 r, g, b = pixel_color(
                     tile_id,
@@ -1940,180 +1399,83 @@ def create_png(world, info):
                     height,
                 )
 
-                pixel_index = (
-                    (
-                        sy * width
-                        + x
-                    ) * 3
-                )
+                pixel_index = ((sy * width + x) * 3)
 
-                pixels[
-                    pixel_index
-                ] = r
-
-                pixels[
-                    pixel_index + 1
-                ] = g
-
-                pixels[
-                    pixel_index + 2
-                ] = b
+                pixels[pixel_index] = r
+                pixels[pixel_index + 1] = g
+                pixels[pixel_index + 2] = b
 
         strip = Image.frombytes(
             "RGB",
-            (
-                width,
-                current_height,
-            ),
+            (width, current_height),
             bytes(pixels),
         )
 
-        image.paste(
-            strip,
-            (
-                0,
-                y0,
-            ),
-        )
-
+        image.paste(strip, (0, y0))
         strip.close()
-
         del pixels
 
-        rendered = (
-            y0
-            + current_height
-        )
+        rendered = y0 + current_height
 
-        if (
-            y0 % 160 == 0
-            or rendered >= height
-        ):
-
-            print(
-                f"[*] Rendered "
-                f"{rendered}/{height}"
-            )
+        if y0 % 160 == 0 or rendered >= height:
+            print(f"[*] Rendered {rendered}/{height}")
 
     print()
     print("[*] Saving PNG...")
 
-    image.save(
-        PNG_FILE,
-        "PNG",
-        optimize=False,
-    )
-
+    image.save(PNG_FILE, "PNG", optimize=False)
     image.close()
 
-    print(
-        f"[+] PNG saved: "
-        f"{PNG_FILE.resolve()}"
-    )
+    print(f"[+] PNG saved: {PNG_FILE.resolve()}")
 
 
 # ============================================================
 # SCANNER
 # ============================================================
 
-async def scanner(
-    writer,
-    state,
-):
-    """
-    Scan the world ONLY after Packet 49.
-
-    This is the important difference from the
-    previous version.
-    """
-
-    # --------------------------------------------------------
-    # Wait for Connection Complete
-    # --------------------------------------------------------
+async def scanner(writer, state):
+    """Scan the world ONLY after Packet 49."""
 
     print()
-    print(
-        "[*] Scanner waiting for "
-        "Connection Complete..."
-    )
+    print("[*] Scanner waiting for Connection Complete...")
 
     try:
-
         await asyncio.wait_for(
             state.connection_complete.wait(),
             timeout=30,
         )
-
     except asyncio.TimeoutError:
-
-        print(
-            "[!] Packet 49 was not received "
-            "within 30 seconds."
-        )
-
+        print("[!] Packet 49 was not received within 30 seconds.")
         return
 
     if not state.running:
         return
 
-    # Give the server a small amount of time
-    # after Packet 49.
     await asyncio.sleep(1.0)
 
     world = state.world_map
 
     if world is None:
-        print(
-            "[!] No world storage."
-        )
+        print("[!] No world storage.")
         return
 
-    columns = (
-        world.section_columns
-    )
-
-    rows = (
-        world.section_rows
-    )
-
-    total = (
-        columns * rows
-    )
+    columns = world.section_columns
+    rows = world.section_rows
+    total = columns * rows
 
     print()
     print("[*] Section grid:")
-
-    print(
-        f"    {columns} x {rows}"
-    )
-
-    print(
-        f"    Total: {total}"
-    )
-
+    print(f"    {columns} x {rows}")
+    print(f"    Total: {total}")
     print()
-    print(
-        "[*] Starting world scan..."
-    )
+    print("[*] Starting world scan...")
 
     move = 0
 
-    # --------------------------------------------------------
-    # Start from actual spawn
-    # --------------------------------------------------------
+    spawn_x = state.world_info["spawn_x"]
+    spawn_y = state.world_info["spawn_y"]
 
-    spawn_x = state.world_info[
-        "spawn_x"
-    ]
-
-    spawn_y = state.world_info[
-        "spawn_y"
-    ]
-
-    print(
-        f"[>] Moving to spawn "
-        f"{spawn_x},{spawn_y}"
-    )
+    print(f"[>] Moving to spawn {spawn_x},{spawn_y}")
 
     await send_update_player(
         writer,
@@ -2123,14 +1485,7 @@ async def scanner(
     )
 
     move += 1
-
-    await asyncio.sleep(
-        MOVE_DELAY
-    )
-
-    # --------------------------------------------------------
-    # Scan sections
-    # --------------------------------------------------------
+    await asyncio.sleep(MOVE_DELAY)
 
     for sy in range(rows):
 
@@ -2138,45 +1493,20 @@ async def scanner(
             break
 
         if sy % 2 == 0:
-
-            x_range = range(
-                columns
-            )
-
+            x_range = range(columns)
         else:
-
-            x_range = range(
-                columns - 1,
-                -1,
-                -1,
-            )
+            x_range = range(columns - 1, -1, -1)
 
         for sx in x_range:
 
             if not state.running:
                 break
 
-            x = (
-                sx
-                * SECTION_WIDTH
-                + SECTION_WIDTH // 2
-            )
+            x = sx * SECTION_WIDTH + SECTION_WIDTH // 2
+            y = sy * SECTION_HEIGHT + SECTION_HEIGHT // 2
 
-            y = (
-                sy
-                * SECTION_HEIGHT
-                + SECTION_HEIGHT // 2
-            )
-
-            x = min(
-                x,
-                world.width - 1,
-            )
-
-            y = min(
-                y,
-                world.height - 1,
-            )
+            x = min(x, world.width - 1)
+            y = min(y, world.height - 1)
 
             await send_update_player(
                 writer,
@@ -2188,21 +1518,14 @@ async def scanner(
             move += 1
 
             print(
-                f"[>] Move "
-                f"{move} "
-                f"-> {x},{y} "
-                f"| sections="
-                f"{len(world.sections)}"
+                f"[>] Move {move} -> {x},{y} "
+                f"| sections={len(world.sections)}"
             )
 
-            await asyncio.sleep(
-                MOVE_DELAY
-            )
+            await asyncio.sleep(MOVE_DELAY)
 
     print()
-    print(
-        "[+] Scan path finished."
-    )
+    print("[+] Scan path finished.")
 
 
 # ============================================================
@@ -2212,27 +1535,15 @@ async def scanner(
 class State:
 
     def __init__(self):
-
         self.player_id = None
-
         self.world_map = None
-
         self.world_info = None
-
         self.world_info_received = False
-
         self.spawn_sent = False
-
-        self.connection_complete = (
-            asyncio.Event()
-        )
-
+        self.connection_complete = asyncio.Event()
         self.running = True
-
         self.packet10_count = 0
-
         self.decode_errors = 0
-
         self.server_disconnect = False
 
 
@@ -2240,173 +1551,69 @@ class State:
 # RECEIVER
 # ============================================================
 
-async def receiver(
-    reader,
-    writer,
-    state,
-):
+async def receiver(reader, writer, state):
     """Receive server packets."""
 
     try:
-
         while state.running:
 
-            packet_id, payload = (
-                await read_packet(
-                    reader
-                )
-            )
+            packet_id, payload = await read_packet(reader)
 
-            # ------------------------------------------------
-            # Disconnect
-            # ------------------------------------------------
-
+            # ---------- Disconnect ----------
             if packet_id == 2:
 
                 state.server_disconnect = True
 
                 print()
-                print(
-                    "[!] Server disconnected."
-                )
-
-                # Packet 2 contains NetworkText,
-                # not necessarily a simple Terraria string.
-                #
-                # Print raw payload too so we can identify
-                # the exact reason if the server kicks us.
-
-                print(
-                    "    Payload:",
-                    payload.hex(" "),
-                )
+                print("[!] Server disconnected.")
+                print("    Payload:", payload.hex(" "))
 
                 try:
-
-                    reason, _ = read_string(
-                        payload,
-                        0,
-                    )
-
-                    print(
-                        "    String:",
-                        repr(reason),
-                    )
-
+                    reason, _ = read_string(payload, 0)
+                    print("    String:", repr(reason))
                 except Exception as exc:
-
-                    print(
-                        "    NetworkText "
-                        f"decode failed: {exc}"
-                    )
+                    print(f"    NetworkText decode failed: {exc}")
 
                 state.running = False
-
                 break
 
-            # ------------------------------------------------
-            # Set User Slot
-            # ------------------------------------------------
-
+            # ---------- Set User Slot ----------
             if packet_id == 3:
 
                 if not payload:
                     continue
 
-                state.player_id = (
-                    payload[0]
-                )
+                state.player_id = payload[0]
 
-                print(
-                    f"[+] Player ID: "
-                    f"{state.player_id}"
-                )
+                print(f"[+] Player ID: {state.player_id}")
 
-                # SAME ORDER AS WORKING CODE
-                await send_player_info(
-                    writer,
-                    state.player_id,
-                )
-
-                await send_inventory(
-                    writer,
-                    state.player_id,
-                )
-
-                await request_world(
-                    writer
-                )
+                await send_player_info(writer, state.player_id)
+                await send_inventory(writer, state.player_id)
+                await request_world(writer)
 
                 continue
 
-            # ------------------------------------------------
-            # World Info
-            # ------------------------------------------------
-
+            # ---------- World Info ----------
             if packet_id == 7:
 
                 try:
-
-                    info = parse_world_info(
-                        payload
-                    )
-
+                    info = parse_world_info(payload)
                 except Exception as exc:
-
-                    print(
-                        "[!] WorldInfo parse "
-                        f"error: {exc}"
-                    )
-
+                    print(f"[!] WorldInfo parse error: {exc}")
                     continue
 
                 state.world_info = info
 
                 print()
-                print(
-                    "========== WORLD =========="
-                )
-
-                print(
-                    f"Name:      "
-                    f"{info['name']}"
-                )
-
-                print(
-                    f"Size:      "
-                    f"{info['width']} x "
-                    f"{info['height']}"
-                )
-
-                print(
-                    f"Spawn:     "
-                    f"{info['spawn_x']}, "
-                    f"{info['spawn_y']}"
-                )
-
-                print(
-                    f"Surface:   "
-                    f"{info['surface']}"
-                )
-
-                print(
-                    f"Rock:      "
-                    f"{info['rock_layer']}"
-                )
-
-                print(
-                    f"World ID:  "
-                    f"{info['world_id']}"
-                )
-
-                print(
-                    f"Game Mode: "
-                    f"{info['game_mode']}"
-                )
-
-                print(
-                    "============================"
-                )
+                print("========== WORLD ==========")
+                print(f"Name:      {info['name']}")
+                print(f"Size:      {info['width']} x {info['height']}")
+                print(f"Spawn:     {info['spawn_x']}, {info['spawn_y']}")
+                print(f"Surface:   {info['surface']}")
+                print(f"Rock:      {info['rock_layer']}")
+                print(f"World ID:  {info['world_id']}")
+                print(f"Game Mode: {info['game_mode']}")
+                print("============================")
 
                 if not state.world_info_received:
 
@@ -2417,8 +1624,6 @@ async def receiver(
                         info["height"],
                     )
 
-                    # SAME AS WORKING CODE:
-                    # request around actual spawn.
                     await request_essential_tiles(
                         writer,
                         info["spawn_x"],
@@ -2427,58 +1632,40 @@ async def receiver(
 
                 continue
 
-            # ------------------------------------------------
-            # Packet 10
-            # ------------------------------------------------
-
+            # ---------- Packet 10 ----------
             if packet_id == 10:
 
                 state.packet10_count += 1
 
                 try:
-
                     (
                         start_x,
                         start_y,
                         width,
                         height,
                         tiles,
-                    ) = parse_section(
-                        payload
-                    )
+                    ) = parse_section(payload)
 
                     if state.world_map is None:
                         continue
 
-                    added = (
-                        state.world_map.add_section(
-                            start_x,
-                            start_y,
-                            width,
-                            height,
-                            tiles,
-                        )
+                    added = state.world_map.add_section(
+                        start_x,
+                        start_y,
+                        width,
+                        height,
+                        tiles,
                     )
 
                     if not added:
                         continue
 
-                    number = len(
-                        state.world_map.sections
-                    )
+                    number = len(state.world_map.sections)
 
                     print(
-                        f"[+] Section "
-                        f"{number}: "
-                        f"{start_x},"
-                        f"{start_y} "
-                        f"{width}x"
-                        f"{height}"
+                        f"[+] Section {number}: "
+                        f"{start_x},{start_y} {width}x{height}"
                     )
-
-                    # ----------------------------------------
-                    # Spawn only once.
-                    # ----------------------------------------
 
                     if not state.spawn_sent:
 
@@ -2487,82 +1674,43 @@ async def receiver(
                         await send_spawn_player(
                             writer,
                             state.player_id,
-                            state.world_info[
-                                "spawn_x"
-                            ],
-                            state.world_info[
-                                "spawn_y"
-                            ],
+                            state.world_info["spawn_x"],
+                            state.world_info["spawn_y"],
                         )
 
-                        print(
-                            "[>] Spawn packet sent"
-                        )
+                        print("[>] Spawn packet sent")
 
                 except Exception as exc:
 
                     state.decode_errors += 1
-
-                    print(
-                        "[!] Packet 10 decode "
-                        f"error: {exc}"
-                    )
+                    print(f"[!] Packet 10 decode error: {exc}")
 
                 continue
 
-            # ------------------------------------------------
-            # Connection Complete
-            # ------------------------------------------------
-
+            # ---------- Connection Complete ----------
             if packet_id == 49:
 
                 print()
-                print(
-                    "[+] Connection complete"
-                )
+                print("[+] Connection complete")
 
-                # IMPORTANT:
-                # Scanner waits for this event.
                 state.connection_complete.set()
-
                 continue
 
-            # ------------------------------------------------
-            # Other packets
-            # ------------------------------------------------
-
-            if packet_id == 9:
-                continue
-
-            if packet_id == 12:
-                continue
-
-            if packet_id == 14:
+            # ---------- Ignore others ----------
+            if packet_id in (9, 12, 14):
                 continue
 
     except asyncio.IncompleteReadError:
-
-        print(
-            "[!] Connection closed by server."
-        )
+        print("[!] Connection closed by server.")
 
     except asyncio.CancelledError:
-
         pass
 
     except Exception as exc:
-
-        print(
-            "[!] Receiver error:"
-        )
-
-        print(
-            f"    {type(exc).__name__}: "
-            f"{exc}"
-        )
+        print("[!] Receiver error:")
+        print(f"    {type(exc).__name__}: {exc}")
 
     finally:
-
         state.running = False
 
 
@@ -2575,42 +1723,16 @@ async def main():
 
     state = State()
 
-    print(
-        "=========================================="
-    )
-
-    print(
-        " Terraria 1.4.5.x World Map Downloader"
-    )
-
-    print(
-        "=========================================="
-    )
-
-    print(
-        f"[*] Connecting to "
-        f"{HOST}:{PORT}"
-    )
+    print("==========================================")
+    print(" Terraria 1.4.5.x World Map Downloader")
+    print("==========================================")
+    print(f"[*] Connecting to {HOST}:{PORT}")
 
     try:
-
-        reader, writer = (
-            await asyncio.open_connection(
-                HOST,
-                PORT,
-            )
-        )
-
+        reader, writer = await asyncio.open_connection(HOST, PORT)
     except Exception as exc:
-
-        print(
-            "[!] Connection failed:"
-        )
-
-        print(
-            f"    {repr(exc)}"
-        )
-
+        print("[!] Connection failed:")
+        print(f"    {repr(exc)}")
         return
 
     print("[+] Connected")
@@ -2619,194 +1741,87 @@ async def main():
     scanner_task = None
 
     try:
-
-        # ----------------------------------------------------
-        # Packet 1
-        #
-        # THIS IS THE IMPORTANT PART.
-        #
-        # We use:
-        #
-        #     write_string("Terraria319")
-        #
-        # instead of:
-        #
-        #     b"Terraria319"
-        # ----------------------------------------------------
-
+        # ---------- Packet 1 ----------
         await send_packet(
             writer,
             1,
-            write_string(
-                VERSION
-            ),
+            write_string(VERSION),
         )
 
-        print(
-            f"[>] Version sent: "
-            f"{VERSION}"
+        print(f"[>] Version sent: {VERSION}")
+
+        # ---------- Start receiver ----------
+        receiver_task = asyncio.create_task(
+            receiver(reader, writer, state)
         )
 
-        # ----------------------------------------------------
-        # Start receiver
-        # ----------------------------------------------------
-
-        receiver_task = (
-            asyncio.create_task(
-                receiver(
-                    reader,
-                    writer,
-                    state,
-                )
-            )
-        )
-
-        # ----------------------------------------------------
-        # Wait until WorldInfo exists
-        # ----------------------------------------------------
-
+        # ---------- Wait until WorldInfo ----------
         while (
             state.world_map is None
             and state.running
             and not receiver_task.done()
         ):
-
-            await asyncio.sleep(
-                0.1
-            )
+            await asyncio.sleep(0.1)
 
         if state.world_map is None:
-
-            print(
-                "[!] World was not received."
-            )
-
+            print("[!] World was not received.")
             return
 
-        # ----------------------------------------------------
-        # Start scanner.
-        #
-        # Scanner itself waits for Packet 49.
-        # ----------------------------------------------------
-
+        # ---------- Start scanner ----------
         if SCAN_WHOLE_WORLD:
 
-            scanner_task = (
-                asyncio.create_task(
-                    scanner(
-                        writer,
-                        state,
-                    )
-                )
+            scanner_task = asyncio.create_task(
+                scanner(writer, state)
             )
 
-            # Wait for scanner OR disconnect.
             while (
                 not scanner_task.done()
                 and state.running
             ):
+                await asyncio.sleep(0.2)
 
-                await asyncio.sleep(
-                    0.2
-                )
-
-            if (
-                scanner_task
-                and scanner_task.done()
-            ):
-
+            if scanner_task and scanner_task.done():
                 try:
                     await scanner_task
                 except Exception as exc:
-                    print(
-                        "[!] Scanner error:",
-                        repr(exc),
-                    )
+                    print("[!] Scanner error:", repr(exc))
 
-        # ----------------------------------------------------
-        # Give receiver a moment to process final sections
-        # ----------------------------------------------------
-
-        await asyncio.sleep(
-            2.0
-        )
+        # ---------- Wait for final sections ----------
+        await asyncio.sleep(2.0)
 
     except KeyboardInterrupt:
-
-        print(
-            "\n[!] Stopped by user."
-        )
+        print("\n[!] Stopped by user.")
 
     except Exception as exc:
-
         print()
-        print(
-            "[!] ERROR:"
-        )
-
-        print(
-            f"    {type(exc).__name__}: "
-            f"{exc}"
-        )
+        print("[!] ERROR:")
+        print(f"    {type(exc).__name__}: {exc}")
 
     finally:
 
         state.running = False
 
-        # ----------------------------------------------------
-        # Cancel scanner
-        # ----------------------------------------------------
+        if scanner_task and not scanner_task.done():
+            scanner_task.cancel()
+            try:
+                await scanner_task
+            except asyncio.CancelledError:
+                pass
 
-        if scanner_task:
+        if receiver_task and not receiver_task.done():
+            receiver_task.cancel()
+            try:
+                await receiver_task
+            except asyncio.CancelledError:
+                pass
 
-            if not scanner_task.done():
-
-                scanner_task.cancel()
-
-                try:
-                    await scanner_task
-                except asyncio.CancelledError:
-                    pass
-
-        # ----------------------------------------------------
-        # Cancel receiver
-        # ----------------------------------------------------
-
-        if receiver_task:
-
-            if not receiver_task.done():
-
-                receiver_task.cancel()
-
-                try:
-                    await receiver_task
-                except asyncio.CancelledError:
-                    pass
-
-        # ----------------------------------------------------
-        # Results
-        # ----------------------------------------------------
-
+        # ---------- Results ----------
         print()
-        print(
-            "=========================================="
-        )
-
+        print("==========================================")
         print("[+] RESULT")
-
-        print(
-            "=========================================="
-        )
-
-        print(
-            f"Packet 10 received: "
-            f"{state.packet10_count}"
-        )
-
-        print(
-            f"Packet 10 errors: "
-            f"{state.decode_errors}"
-        )
+        print("==========================================")
+        print(f"Packet 10 received: {state.packet10_count}")
+        print(f"Packet 10 errors:   {state.decode_errors}")
 
         if state.world_map is not None:
 
@@ -2822,69 +1837,31 @@ async def main():
                 * world.section_rows
             )
 
-            print(
-                f"Sections received: "
-                f"{len(world.sections)}"
-            )
-
-            print(
-                f"Sections expected: "
-                f"{expected}"
-            )
+            print(f"Sections received: {len(world.sections)}")
+            print(f"Sections expected: {expected}")
 
             if len(world.sections) > 0:
-
                 try:
-
-                    create_png(
-                        world,
-                        state.world_info,
-                    )
-
+                    create_png(world, state.world_info)
+                    write_legend()
                 except Exception as exc:
-
-                    print(
-                        "[!] PNG error:"
-                    )
-
-                    print(
-                        f"    {type(exc).__name__}: "
-                        f"{exc}"
-                    )
-
-        # ----------------------------------------------------
-        # Close world storage
-        # ----------------------------------------------------
+                    print("[!] PNG error:")
+                    print(f"    {type(exc).__name__}: {exc}")
 
         if state.world_map is not None:
-
             try:
                 state.world_map.close()
             except Exception as exc:
-
-                print(
-                    "[!] Storage close error:",
-                    repr(exc),
-                )
-
-        # ----------------------------------------------------
-        # Close connection
-        # ----------------------------------------------------
+                print("[!] Storage close error:", repr(exc))
 
         try:
-
             writer.close()
-
             await writer.wait_closed()
-
         except Exception:
-
             pass
 
         print()
-        print(
-            "[*] Finished."
-        )
+        print("[*] Finished.")
 
 
 # ============================================================
