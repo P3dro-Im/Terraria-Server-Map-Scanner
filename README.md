@@ -1,7 +1,7 @@
 # Terraria Server Map Scanner
 
 [![Python](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
-[![Terraria](https://img.shields.io/badge/Terraria-1.4.5.x-00AEEF.svg)](https://terraria.org/)
+[![Terraria](https://img.shields.io/badge/Terraria-1.4.5.6.x-00AEEF.svg)](https://terraria.org/)
 ![Status](https://img.shields.io/badge/Status-Experimental-orange.svg)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
@@ -9,7 +9,7 @@ A Python-based Terraria network client that connects directly to a Terraria serv
 
 > **Status:** Experimental / Research Project
 
-> **Target:** Terraria 1.4.5.x protocol
+> **Target:** Terraria 1.4.5.6.x protocol
 
 ---
 
